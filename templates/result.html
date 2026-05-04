@@ -3,137 +3,213 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Result</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Stock Prediction</title>
+    <link rel="stylesheet" href="static/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </head>
-<body class="bg-light">
-    <div class="container mt-4">
+<body>
+    <nav class="topbar">
+        <div>Stock Prediction</div>
+        <form method="POST" action="/get_stock">
+        <div class="search-row">
+        <input class="search-input" name="symbol" placeholder="Symbol..." value="{{ symbol }}"/>
+        <button class="btn-analyze" type="submit">ANALYZE</button>
+    </div>
+  </form>
+        <div>
+            <span class="signal-badge {{signal}}">{{signal}}</span>
+            <span id="clock">time</span>
+        </div>
+    </nav>
+    <div class="body">
+
+        <aside class="sidebar">
+            <div class="stock-header">
+                <div class="stock-name" style="text-transform: uppercase;">{{symbol}}</div>
+                    <div class="stock-sub">NSE · EQUITY · INR</div>
+                    {% set cur = prices[-2] %}
+                    {% set prev = prices[-3] %}
+                    {% set chg = cur - prev %}
+                    {% set chg_pct = (chg/prev*100) %}
+                    <div class="price-big">₹{{ cur }}</div>
+                    <div class="price-change {{ 'up' if chg >= 0 else 'down' }}">
+                    {{ '▲' if chg >= 0 else '▼' }}
+                    {{ '%+.2f'|format(chg) }} ({{ '%+.2f'|format(chg_pct) }}%)
+                    </div>
+            </div>
+
+            <div>
+                <div class="section-label">Next Day Prediction</div>
+                <div class="prediction-box">
+                    <div>
+                    <div class="pred-lbl">Predicted Close</div>
+                    <div class="pred-value">₹{{ prediction }}</div>
+                    </div>
+                </div>
+            </div>
     
-    <h2 class="text-center mb-4">Stock Data for {{ symbol }}</h2>
+            <div>
+                <div class="section-label">RSI · 14</div>
+                <div class="rsi-wrap">
+                    {% set latest_rsi = rsi[-2] or 50 %}
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                    <span style="font-size:11px;color:var(--muted)">
+                    {{ 'Oversold' if latest_rsi < 30 else ('Overbought' if latest_rsi > 70 else 'Neutral') }}
+                    </span>
+                    <span style="font-size:16px;font-weight:700;">{{ latest_rsi }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+
+                <div class="section-label">Model Evaluation</div>
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-val">{{evaluation.directional_accuracy}}%</div>
+                        <div class="metric-lbl">Dir. Accuracy</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-val">{{evaluation.mape}}%</div>
+                        <div class="metric-lbl">MAPE</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-val">₹{{evaluation.rmse}}</div>
+                        <div class="metric-lbl">RMSE</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-val">{{evaluation.tolerance_accuracy}}%</div>
+                        <div class="metric-lbl">Tol. Accuracy</div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+
+                <div class="section-label">Details</div>
+                <div class="eval-list">
+                    <div class="eval-row">
+                        <span class="eval-key">RMSE %</span>
+                        <span class="eval-val">{{ evaluation.rmse_percent }}%</span>
+                    </div>
+                    <div class="eval-row">
+                        <span class="eval-key">Test Days</span>
+                        <span class="eval-val">{{ evaluation.total_test_days }}</span>
+                    </div>
+                    <div class="eval-row">
+                        <span class="eval-key">MA5</span>
+                        <span class="eval-val">₹{{ ma5[-2] }}</span>
+                    </div>               
+            </div>
     
-    <div class="row text-center mb-4">
-        <div class="col-md-4">
-            <div class="card shadow p-3">
-                <h5>Predicted Next Day Price:</h5>
-                <h3>Rs. {{ prediction }}</h3>
+        </aside>
+        <div class="main">
+            <div class="chart-area">
+                <div class="chart-header">
+                    <div style="font-size:13px;font-weight:500">Price Chart · 6 Months</div>
+                    <div class="chart-legend">
+                        <span class="leg"><span class="leg-dot" style="background:#00d4ff"></span>Actual</span>
+                        <span class="leg"><span class="leg-dot" style="background:#00e676;border-top:1px dashed #00e676"></span>Predicted</span>
+                        <span class="leg"><span class="leg-dot" style="background:#ffa726"></span>MA5</span>
+                </div>
+            </div>
+            <canvas id="priceChart"></canvas>
+            </div>
+
+            <div class="bottom-strip">
+            <div class="strip-card">
+                <div class="strip-val up">₹{{ prediction }}</div>
+                <div class="strip-lbl">Next Day</div>
+            </div>
+            <div class="strip-card">
+                <div class="strip-val">₹{{ prices[:-1]|max }}</div>
+                <div class="strip-lbl">Period High</div>
+            </div>
+            <div class="strip-card">
+                <div class="strip-val">₹{{ prices[:-1]|min }}</div>
+                <div class="strip-lbl">Period Low</div>
+            </div>
+            <div class="strip-card">
+                <div class="strip-val {{ 'c-green' if signal=='BUY' else ('c-red' if signal=='SELL' else 'c-amber') }}">
+                {{ signal }}</div>
+                <div class="strip-lbl">Signal</div>
+            </div>
+            </div>
+            
+            <div class="table-area">
+                <div style="font-size:13px;font-weight:500;margin:16px 0 10px">Recent Data</div>
+                <div class="table-wrap">
+                    <table>
+                    <thead><tr>
+                        <th>Date</th><th>Close</th><th>MA5</th><th>RSI</th>
+                    </tr></thead>
+                    <tbody>
+                        {% for row in table_data[-15:]|reverse %}
+                        <tr>
+                        <td>{{ row.Date }}</td>
+                        <td>₹{{ row.Close }}</td>
+                        <td>₹{{ row.MA5 }}</td>
+                        <td class="{{ 'c-green' if row.RSI < 30 else ('c-red' if row.RSI > 70 else '') }}">
+                            {{ row.RSI }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-4">
-        <div class="card shadow p-3">
-            <h5>RSI</h5>
-            <h3>{{ latest_rsi }}</h3>
-        </div>
-    </div>
+ <script>
+ // Clock
+  setInterval(()=>{
+    document.getElementById('clock').textContent =
+      new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
+  },1000)
 
-        <div class="col-md-4">
-            <div class="card shadow p-3">
-                <h5>Signal</h5>
-                {% if signal == "BUY" %}
-                    <h3 class="text-success">BUY</h3>
-                {% elif signal == "SELL" %}
-                    <h3 class="text-danger">SELL</h3>
-                {% else %}
-                    <h3>HOLD</h3>
-                {% endif %}
-            </div>
-        </div>
-    </div>    
+  // Chart
+  const dates = {{ dates|tojson }};
+  const prices = {{ prices|tojson }};
+  const predicted = {{ predicted_prices|tojson }};
+  const ma5 = {{ ma5|tojson }};
 
-    <!-- Charts -->
-    <div class="card p-3 mb-4 shadow">
-        <h5>Stock Price</h5>
-        <canvas id="stockChart"></canvas>
-    </div>
-
-    <div class="card p-3 mb-4 shadow">
-        <h5>RSI Indicator</h5>
-        <canvas id="rsiChart"></canvas>
-    </div>
-
-    <!-- Table -->
-    <div class="card p-3 shadow">
-        <h5>Stock Data</h5>
-        <table class="table table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Close</th>
-                    <th>MA5</th>
-                    <th>RSI</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in table_data %}
-                <tr>
-                    <td>{{ row.Date }}</td>
-                    <td>{{ row.Close }}</td>
-                    <td>{{ row.MA5 if row.MA5 not in [None, 'nan'] else "-" }}</td>
-                    <td>{{ row.RSI if row.RSI not in [None, 'nan'] else "-" }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-</div>
-<script>
-    window.onload = function () {
-        
-        // const labels = JSON.parse('{{ dates | tojson | safe }}');
-        // const actual = JSON.parse('{{ prices | tojson | safe }}');
-        // const predicted=JSON.parse('{{ predicted_prices | tojson | safe }}');
-        // const ma=JSON.parse('{{ma5 | tojson | safe}}');
-        // const rsiData = JSON.parse('{{ rsi | tojson | safe }}');
-            const labels = {{ dates | tojson | safe }};
-    const actual = {{ prices | tojson | safe }};
-    const predicted = {{ predicted_prices | tojson | safe }};
-    const ma = {{ ma5 | tojson | safe }};
-    const rsiData = {{ rsi | tojson | safe }};
-        const ctx = document.getElementById("stockChart").getContext("2d");
-        
-        new Chart(ctx, {
-            type: "line",
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: "Actual Price",
-                    data: actual,
-                    borderColor:"blue",
-                    fill:false
-                },
-                {
-                    label:"Predicted Price",
-                    data:predicted,
-                    borderColor:"green",
-                    borderDash:[5,5]
-                },
-                {
-                    label:"Moving Average",
-                    data:ma,
-                    borderColor:"orange"
-                }
-            ]
+  new Chart(document.getElementById('priceChart'),{
+    type:'line',
+    data:{
+      labels: dates,
+      datasets:[
+        {label:'Actual', data:prices, borderColor:'#00d4ff',
+         borderWidth:1.5, pointRadius:0, tension:0.3, fill:false},
+        {label:'Predicted', data:predicted, borderColor:'#00e676',
+         borderWidth:1.5, borderDash:[5,3], pointRadius:0, tension:0.3, fill:false},
+        {label:'MA5', data:ma5, borderColor:'#ffa726',
+         borderWidth:1, borderDash:[2,2], pointRadius:0, tension:0.3, fill:false}
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{intersect:false, mode:'index'},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#111827', borderColor:'#1e2d45', borderWidth:1,
+          titleColor:'#5a7090', bodyColor:'#e8edf5',
+          titleFont:{family:'DM Mono',size:11},
+          bodyFont:{family:'DM Mono',size:12}, padding:10,
+          callbacks:{label:c=>`  ${c.dataset.label}: ₹${c.parsed.y?.toFixed(2)??'—'}`}
         }
-    });
-    const ctx2 = document.getElementById("rsiChart").getContext("2d");
-    
-    new Chart(ctx2, {
-        type: "line",
-        data: {
-            labels: labels,
-            datasets: [{
-                label: "RSI",
-                data: rsiData
-            }]
-        }
-    });
-
-};
-</script>
-
-    <a href="/">Go Back</a>
+      },
+      scales:{
+        x:{grid:{color:'#1e2d4540'},
+           ticks:{color:'#5a7090',font:{family:'DM Mono',size:10},maxTicksLimit:8},
+           border:{color:'#1e2d45'}},
+        y:{grid:{color:'#1e2d4540'},
+           ticks:{color:'#5a7090',font:{family:'DM Mono',size:10},
+                  callback:v=>'₹'+v.toLocaleString('en-IN')},
+           border:{color:'#1e2d45'}}
+      }
+    }
+  })    
+ </script>
 </body>
 </html>
