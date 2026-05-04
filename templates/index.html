@@ -3,16 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Prediction System</title>
+    <title>Stock Prediction</title>
+    <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
-    <form method="POST" action="/get_stock">
-        <label>Enter Stock Symbol</label>
-        <input type="text" name="symbol" placeholder="Enter symbol(AAPL,TSLA)">
-        <button type="submit">Get Data</button>
-    </form>
-    {% if error %}
-        <p style="color: red; margin-top: 10px;" >{{error}}</p>
-    {% endif%}
+    <div style="position: relative; min-height: 100vh;">
+        <div id="loader">
+          <div class="spinner"></div>
+          <span class="loader-text">Fetching data & training model...</span>
+        </div>
+      
+            <nav class="topbar">
+              <div>Stock Prediction</div>
+              <div>
+                  <span id="clock">time</span>
+              </div>
+          </nav>
+        
+        <div class="main-index">
+            <div class="main-left">
+                <div class="main-tag">AI-Powered · NSE / BSE</div>
+                <div class="main-title">
+                Predict.<br>Analyze.<br><span>Invest Smart.</span>
+            </div>
+            <div class="main-sub">
+              ML-powered stock analysis with RSI signals, moving averages,
+              and next-day price predictions for Indian markets.
+            </div>
+        
+            {% if error %}
+            <div class="error-banner">{{ error }}</div>
+            {% endif %}
+      
+            <form id="sym-form" method="POST" action="/get_stock"
+                  onsubmit="document.getElementById('loader').style.display='flex'">
+              <div class="search-box">
+                <input class="search-in" name="symbol" id="sym-input"
+                       placeholder="Enter NSE symbol — e.g. RELIANCE.NS"
+                       autocomplete="off" spellcheck="false"/>
+                <button class="btn-go" type="submit">ANALYZE</button>
+              </div>
+            </form>
+          </div>
+            
+          <div class="main-right">
+            <div class="main-title">Features</div>
+            <div class="feature-box">
+                <div class="feat-title">ML Prediction</div>
+                <div class="feat-desc">Long Short-Term model trained on 1 year of NSE/BSE data with RSI, MA crossover, lag and volatility features.</div>
+            </div>
+            <div class="feature-box">
+                <div class="feat-title">RSI Signals</div>
+                <div class="feat-desc">Real-time Buy / Sell / Hold signals using Wilder's RSI with overbought and oversold zone detection.</div>
+            </div>
+            <div class="feature-box">
+                <div class="feat-title">Model Evaluation</div>
+                <div class="feat-desc">Full accuracy report with RMSE, MAPE, directional accuracy, and tolerance scoring on held-out test data.</div>
+            </div>
+          </div>
+    </div>
+<script>  
+setInterval(()=>{
+document.getElementById('clock').textContent =new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
+},1000)
+</script> 
 </body>
 </html>
