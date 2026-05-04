@@ -162,7 +162,7 @@ def get_stock():
     signal     = "BUY" if latest_rsi < 30 else ("SELL" if latest_rsi > 70 else "HOLD")
 
     return render_template(
-        'result_demo.html',
+        'result.html',
         symbol=symbol,
         table_data=data.to_dict(orient='records'),
         dates=dates,
