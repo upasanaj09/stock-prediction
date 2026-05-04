@@ -46,7 +46,6 @@ stock-prediction/
 ├── static/
 │   └── style.css           # Additional styles (if any)
 ├── requirements.txt        # Python dependencies
-├── Procfile                # Render/Gunicorn start command
 ├── runtime.txt             # Python version
 └── README.md
 ```
